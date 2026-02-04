@@ -1,0 +1,3 @@
+data bundle/
+.venv/
+__pycache__/
