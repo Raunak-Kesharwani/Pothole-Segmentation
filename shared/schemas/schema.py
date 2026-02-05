@@ -28,3 +28,12 @@ class PotholePredictionResponse(BaseModel):
     confidence: float
     message: str
     metrics: Optional[SegmentationMetrics] = None
+
+    # Optional visualizations (PNG images encoded as base64 strings)
+    mask_png_base64: Optional[str] = Field(
+        None, description="Binary segmentation mask as a base64-encoded PNG"
+    )
+    overlay_png_base64: Optional[str] = Field(
+        None,
+        description="Input image with mask overlay as a base64-encoded PNG",
+    )

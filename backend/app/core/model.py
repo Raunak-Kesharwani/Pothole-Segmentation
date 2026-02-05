@@ -1,7 +1,10 @@
 import onnxruntime as ort
 from pathlib import Path
 
-MODEL_PATH = Path("backend/models/best.onnx")
+# Get the project root (assuming this file is at backend/app/core/model.py)
+# Go up 3 levels: backend/app/core -> backend/app -> backend -> root
+_PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
+MODEL_PATH = _PROJECT_ROOT / "backend" / "models" / "best.onnx"
 
 
 class ONNXModel:
