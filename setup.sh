@@ -12,8 +12,7 @@ if [ ! -f "frontend/.env.local" ]; then
     echo ""
     echo "Create it with your Supabase credentials:"
     echo ""
-    echo "VITE_SUPABASE_URL=https://your-project.supabase.co"
-    echo "VITE_SUPABASE_ANON_KEY=your_anon_key"
+
     echo "VITE_GEMINI_API_KEY=your_gemini_key"
     echo "VITE_API_URL=http://localhost:8000"
     echo ""
