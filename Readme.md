@@ -1,4 +1,4 @@
-# 🚗 Pothole Segmentation & Detection Platform
+# Pothole Segmentation & Detection Platform
 
 > **AI-Powered Civic Infrastructure Reporting System**
 > 
