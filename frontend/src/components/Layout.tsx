@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ThemeToggle } from './ThemeToggle';
-import { Footer } from './Footer';
+import { useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
+import { ThemeToggle } from './ThemeToggle'
+import { Footer } from './Footer'
+import { useAuth } from '../context/SupabaseAuthContext'
 
 const nav = [
   { to: '/', label: 'Home' },
@@ -10,20 +11,31 @@ const nav = [
   { to: '/report', label: 'Reports' },
   { to: '/leaderboard', label: 'Leaderboard' },
   { to: '/profile', label: 'Profile' },
-];
+]
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  const location = useLocation();
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const location = useLocation()
+  const navigate = useNavigate()
+  const { user, signOut } = useAuth()
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  const handleLogout = async () => {
+    await signOut()
+    navigate('/login')
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300">
       <header className="sticky top-0 z-50 border-b border-slate-200/80 dark:border-slate-700/80 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl transition-colors duration-300">
         <div className="max-w-[1300px] mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
+          import {Logo} from './ui/Logo'
+
+          // ...
           <Link
             to="/"
-            className="text-lg font-bold text-slate-900 dark:text-white tracking-tight shrink-0"
+            className="text-lg font-bold text-slate-900 dark:text-white tracking-tight shrink-0 flex items-center gap-2"
           >
+            <Logo className="w-8 h-8" />
             Pothole AI
           </Link>
 
@@ -34,11 +46,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
               return (
                 <Link key={to} to={to}>
                   <span
-                    className={`block px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
-                      active
-                        ? 'bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
-                    }`}
+                    className={`block px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${active
+                      ? 'bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
                   >
                     {label}
                   </span>
@@ -49,6 +60,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
           <div className="flex items-center gap-3 shrink-0">
             <ThemeToggle />
+            {user && (
+              <button
+                onClick={handleLogout}
+                className="px-3 py-2 rounded-lg text-sm font-medium bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+              >
+                Logout
+              </button>
+            )}
             <button
               type="button"
               aria-label="Menu"
@@ -86,11 +105,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       key={to}
                       to={to}
                       onClick={() => setMobileOpen(false)}
-                      className={`block px-4 py-3 rounded-lg text-sm font-medium ${
-                        active
-                          ? 'bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white'
-                          : 'text-slate-600 dark:text-slate-400'
-                      }`}
+                      className={`block px-4 py-3 rounded-lg text-sm font-medium ${active
+                        ? 'bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white'
+                        : 'text-slate-600 dark:text-slate-400'
+                        }`}
                     >
                       {label}
                     </Link>
@@ -105,7 +123,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <main className="flex-1 w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 max-w-[1300px]">
         {children}
       </main>
-      <Footer />
     </div>
   );
 }

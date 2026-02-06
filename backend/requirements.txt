@@ -21,3 +21,9 @@ scikit-learn>=1.4
 
 # -------- Validation --------
 pydantic>=2.6
+
+# Supabase Python client
+supabase>=1.0
+
+# Load .env files in backend
+python-dotenv>=1.0

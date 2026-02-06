@@ -1,39 +1,60 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { usePredictions } from '../context/PredictionsContext';
-import { downloadReportAsPDF, downloadReportAsImage, downloadReportAsJSON } from '../lib/report';
-import type { PredictionRecord } from '../types/api';
-
-// Mock GenAI summary (in production: call Gemini/OpenAI with user info + prediction)
-function generateAISummary(record: PredictionRecord, complaint: string) {
-  const severity = record.isPothole && record.metrics?.area_ratio != null
-    ? record.metrics.area_ratio >= 0.15 ? 'High' : record.metrics.area_ratio >= 0.05 ? 'Medium' : 'Low'
-    : 'N/A';
-  return {
-    summary: `Pothole ${record.isPothole ? 'detected' : 'not detected'} with ${(record.confidence * 100).toFixed(0)}% confidence. ${complaint ? `Complaint: ${complaint.slice(0, 100)}${complaint.length > 100 ? '…' : ''}` : ''}`,
-    severityExplanation: record.isPothole
-      ? `Severity: ${severity}. Area ratio ${record.metrics?.area_ratio != null ? (record.metrics.area_ratio * 100).toFixed(2) : '—'}% of image.`
-      : 'No pothole detected in the submitted image.',
-    suggestedAction: record.isPothole
-      ? 'Recommend reporting to local road authority for inspection and repair scheduling.'
-      : 'No action required. Consider resubmitting with a clearer image of the road surface if needed.',
-  };
-}
+import { downloadReportAsPDF, downloadReportAsJSON } from '../lib/report';
+import { generateAIReport } from '../lib/gemini';
+import { AIMetrics } from '../components/AIMetrics';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { Badge } from '../components/ui/Badge';
+import { FileText, Download, Share2, Send, Loader2, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 
 export function ReportPage() {
   const { predictions } = usePredictions();
   const [selectedId, setSelectedId] = useState<string | null>(predictions[0]?.id ?? null);
   const [complaint, setComplaint] = useState('');
   const [userName, setUserName] = useState('Demo User');
-  const [generated, setGenerated] = useState<ReturnType<typeof generateAISummary> | null>(null);
+  const [generated, setGenerated] = useState<any | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   const selected = predictions.find((p) => p.id === selectedId);
-  const canGenerate = selected != null;
+  const canGenerate = selected != null && !isGenerating;
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!selected) return;
-    setGenerated(generateAISummary(selected, complaint));
+
+    setIsGenerating(true);
+    setError(null);
+    setGenerated(null);
+
+    try {
+      const location = selected.location || { lat: 0, lng: 0 };
+      const severity = selected.isPothole && selected.metrics?.area_ratio != null
+        ? selected.metrics.area_ratio >= 0.15 ? 'High' : selected.metrics.area_ratio >= 0.05 ? 'Medium' : 'Low'
+        : 'N/A';
+
+      const report = await generateAIReport(
+        complaint,
+        severity,
+        location,
+        selected
+      );
+
+      setGenerated({
+        summary: report.summary,
+        severityExplanation: `Risk Level: ${report.riskLevel || 'Unknown'}. ${report.civicImpact || ''}`,
+        suggestedAction: report.recommendedAction || 'Review required',
+        severityLevel: severity
+      });
+    } catch (err) {
+      console.error("Failed to generate report:", err);
+      setError("Failed to generate AI report. Please check your connection and API key.");
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const shareableLink = generated
@@ -47,10 +68,13 @@ export function ReportPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Toast state
+  const [showToast, setShowToast] = useState(false);
+
   const sendToAdmin = () => {
-    copyLink();
-    // In production: API call to send report to admin
-    alert('Report link copied. In production this would be sent to admin/authority.');
+    // In a real app, this would send data to backend
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
   };
 
   return (
@@ -58,142 +82,185 @@ export function ReportPage() {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="space-y-8"
+      className="space-y-8 max-w-6xl mx-auto"
     >
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">Report Generation</h1>
-        <p className="text-slate-600 dark:text-slate-400 mt-1">
-          Select a prediction, add complaint text, and generate a smart report (summary, severity, suggested action).
+      <div className="text-center md:text-left">
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Report Generation</h1>
+        <p className="text-slate-600 dark:text-slate-400 mt-2 text-lg">
+          Create professional, AI-enhanced reports for infrastructure maintenance.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <motion.section
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="bg-white dark:bg-slate-800/50 rounded-2xl p-6 shadow-card border border-slate-100 dark:border-slate-700 space-y-4"
-        >
-          <h2 className="text-lg font-medium text-slate-900 dark:text-white">Input</h2>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">User name</label>
-            <input
-              type="text"
-              value={userName}
-              onChange={(e) => setUserName(e.target.value)}
-              className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
-              placeholder="Your name"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Select prediction</label>
-            <select
-              value={selectedId ?? ''}
-              onChange={(e) => { setSelectedId(e.target.value || null); setGenerated(null); }}
-              className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
-            >
-              <option value="">— Select —</option>
-              {predictions.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {new Date(p.timestamp).toLocaleString()} — {p.isPothole ? 'Pothole' : 'No pothole'}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Complaint / notes</label>
-            <textarea
-              value={complaint}
-              onChange={(e) => setComplaint(e.target.value)}
-              rows={3}
-              className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white resize-none"
-              placeholder="Describe the issue or location..."
-            />
-          </div>
-          <button
-            type="button"
-            onClick={handleGenerate}
-            disabled={!canGenerate}
-            className="w-full px-4 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium transition-colors"
-          >
-            Generate report (GenAI)
-          </button>
-        </motion.section>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Input Section */}
+        <div className="lg:col-span-5 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Report Details</CardTitle>
+              <CardDescription>Select a detection and add context.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Reporter Name</label>
+                <Input
+                  value={userName}
+                  onChange={(e) => setUserName(e.target.value)}
+                  placeholder="e.g. Vikram Malhotra"
+                />
+              </div>
 
-        <motion.section
-          initial={{ opacity: 0, x: 10 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="bg-white dark:bg-slate-800/50 rounded-2xl p-6 shadow-card border border-slate-100 dark:border-slate-700 space-y-4"
-        >
-          <h2 className="text-lg font-medium text-slate-900 dark:text-white">Generated report</h2>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Select Detection</label>
+                <select
+                  value={selectedId ?? ''}
+                  onChange={(e) => { setSelectedId(e.target.value || null); setGenerated(null); }}
+                  className="w-full px-3 py-2 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                >
+                  <option value="">— Select a detection —</option>
+                  {predictions.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {new Date(p.timestamp).toLocaleDateString()} — {p.isPothole ? 'Detected Issue' : 'No Issue'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Observations / Notes</label>
+                <textarea
+                  value={complaint}
+                  onChange={(e) => setComplaint(e.target.value)}
+                  rows={4}
+                  className="w-full px-3 py-2 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
+                  placeholder="e.g. Large pothole on 100ft Road, Indiranagar. Causing slow traffic and potential hazard for two-wheelers..."
+                />
+              </div>
+
+              {error && (
+                <div className="flex items-center gap-2 p-3 text-sm text-red-600 bg-red-50 dark:bg-red-900/10 rounded-lg">
+                  <AlertTriangle size={16} />
+                  {error}
+                </div>
+              )}
+            </CardContent>
+            <CardFooter>
+              <Button
+                onClick={handleGenerate}
+                disabled={!canGenerate}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                {isGenerating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Analyzing...</> : 'Generate AI Report'}
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+
+        {/* Output Section */}
+        <div className="lg:col-span-7">
           {!generated ? (
-            <p className="text-slate-500 dark:text-slate-400 text-sm">Select a prediction and click Generate.</p>
+            <Card className="h-full flex items-center justify-center min-h-[400px] border-dashed">
+              <div className="text-center p-8">
+                <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <FileText className="w-8 h-8 text-slate-400" />
+                </div>
+                <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">No Report Generated</h3>
+                <p className="text-slate-500 dark:text-slate-400 max-w-xs mx-auto">
+                  Select a detection from the list and click generate to view the AI analysis.
+                </p>
+              </div>
+            </Card>
           ) : (
-            <>
-              <div className="space-y-3 text-sm">
-                <div>
-                  <p className="font-medium text-slate-700 dark:text-slate-300">Summary</p>
-                  <p className="text-slate-600 dark:text-slate-400">{generated.summary}</p>
+            <Card className="border-emerald-100 dark:border-emerald-900/30 overflow-hidden">
+              <div className="h-2 bg-gradient-to-r from-emerald-500 to-cyan-500" />
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="text-xl">AI Analysis Result</CardTitle>
+                    <CardDescription>Generated on {new Date().toLocaleDateString()}</CardDescription>
+                  </div>
+                  <Badge variant={
+                    generated.severityLevel === 'High' ? 'destructive' :
+                      generated.severityLevel === 'Medium' ? 'warning' : 'success'
+                  }>
+                    {generated.severityLevel} Severity
+                  </Badge>
                 </div>
-                <div>
-                  <p className="font-medium text-slate-700 dark:text-slate-300">Severity</p>
-                  <p className="text-slate-600 dark:text-slate-400">{generated.severityExplanation}</p>
-                </div>
-                <div>
-                  <p className="font-medium text-slate-700 dark:text-slate-300">Suggested action</p>
-                  <p className="text-slate-600 dark:text-slate-400">{generated.suggestedAction}</p>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2 pt-4 border-t border-slate-200 dark:border-slate-600">
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* AI Metrics Block */}
                 {selected && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => downloadReportAsPDF(selected)}
-                      className="px-4 py-2 rounded-lg bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-sm font-medium"
-                    >
-                      Download PDF
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => downloadReportAsImage(selected)}
-                      className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 text-sm"
-                    >
-                      Download image
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => downloadReportAsJSON(selected)}
-                      className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 text-sm"
-                    >
-                      JSON
-                    </button>
-                    <button
-                      type="button"
-                      onClick={copyLink}
-                      className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 text-sm"
-                    >
-                      {copied ? 'Copied!' : 'Copy shareable link'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={sendToAdmin}
-                      className="px-4 py-2 rounded-lg bg-amber-600 text-white text-sm font-medium"
-                    >
-                      Send to admin / authority
-                    </button>
-                  </>
+                  <div className="mb-6">
+                    <AIMetrics
+                      confidence={selected.confidence}
+                      area_pixels={selected.metrics?.area_pixels ?? undefined}
+                      area_ratio={selected.metrics?.area_ratio ?? undefined}
+                    />
+                  </div>
                 )}
-              </div>
-            </>
-          )}
-        </motion.section>
-      </div>
 
-      {predictions.length === 0 && (
-        <p className="text-slate-500 dark:text-slate-400 text-center py-8">
-          Run a detection on the Prediction page first to generate reports.
-        </p>
-      )}
-    </motion.div>
+                <div className="space-y-2">
+                  <h4 className="text-sm font-semibold uppercase text-slate-500 tracking-wider">Executive Summary</h4>
+                  <p className="text-slate-800 dark:text-slate-200 leading-relaxed bg-slate-50 dark:bg-slate-900/50 p-4 rounded-lg border border-slate-100 dark:border-slate-800">
+                    {generated.summary}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold uppercase text-slate-500 tracking-wider flex items-center gap-2">
+                      <Info size={14} /> Risk Assessment
+                    </h4>
+                    <p className="text-sm text-slate-700 dark:text-slate-300">
+                      {generated.severityExplanation}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold uppercase text-slate-500 tracking-wider flex items-center gap-2">
+                      <CheckCircle2 size={14} /> Recommended Action
+                    </h4>
+                    <p className="text-sm text-slate-700 dark:text-slate-300">
+                      {generated.suggestedAction}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+              <div className="bg-slate-50 dark:bg-slate-900/50 p-4 border-t border-slate-200 dark:border-slate-800 flex flex-wrap gap-3">
+                <Button size="sm" variant="outline" onClick={() => downloadReportAsPDF(selected!)}>
+                  <Download className="w-4 h-4 mr-2" /> PDF
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => downloadReportAsJSON(selected!)}>
+                  <FileText className="w-4 h-4 mr-2" /> JSON
+                </Button>
+                <Button size="sm" variant="outline" onClick={copyLink}>
+                  <Share2 className="w-4 h-4 mr-2" /> {copied ? 'Copied' : 'Share'}
+                </Button>
+                <Button size="sm" onClick={sendToAdmin} className="ml-auto bg-emerald-600 text-white hover:bg-emerald-700">
+                  <Send className="w-4 h-4 mr-2" /> Submit
+                </Button>
+              </div>
+            </Card>
+          )}
+        </div>
+      </div>
+      {/* Custom Toast Notification */}
+      {
+        showToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-8 right-8 z-50 bg-slate-900 dark:bg-slate-800 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-4 border border-slate-700"
+          >
+            <div className="bg-emerald-500 rounded-full p-1">
+              <CheckCircle2 size={16} className="text-white" />
+            </div>
+            <div>
+              <h4 className="font-bold text-sm">Report Submitted Successfully</h4>
+              <p className="text-xs text-slate-400">Notified local municipal authority.</p>
+            </div>
+          </motion.div>
+        )
+      }
+    </motion.div >
   );
 }

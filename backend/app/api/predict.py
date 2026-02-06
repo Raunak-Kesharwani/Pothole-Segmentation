@@ -38,46 +38,57 @@ def _make_overlay_bgr(image_bgr: np.ndarray, mask01: np.ndarray) -> np.ndarray:
 
 @router.post("/predict", response_model=PotholePredictionResponse)
 async def predict(image: UploadFile = File(...)):
-    image_bytes = await image.read()
+    try:
+        image_bytes = await image.read()
+        if not image_bytes:
+            raise ValueError("Empty image file")
 
-    mask, is_pothole, confidence, area_pixels, area_ratio = run_inference(image_bytes)
+        mask, is_pothole, confidence, area_pixels, area_ratio = run_inference(image_bytes)
 
-    if not is_pothole:
-        return PotholePredictionResponse(
-            is_pothole=False,
-            confidence=confidence,
-            message="Please click a genuine photo of a pothole or try again.",
-            metrics=None,
-            mask_png_base64=None,
-            overlay_png_base64=None,
-        )
+        if not is_pothole:
+            return PotholePredictionResponse(
+                is_pothole=False,
+                confidence=confidence,
+                message="Please click a genuine photo of a pothole or try again.",
+                metrics=None,
+                mask_png_base64=None,
+                overlay_png_base64=None,
+            )
 
-    metrics = SegmentationMetrics(area_pixels=area_pixels, area_ratio=area_ratio)
+        metrics = SegmentationMetrics(area_pixels=area_pixels, area_ratio=area_ratio)
 
-    # Visuals (mask + overlay), sized to the model input (640x640)
-    mask01 = (mask.astype(np.uint8) > 0).astype(np.uint8)
-    mask_vis = (mask01 * 255).astype(np.uint8)
+        # Visuals (mask + overlay), sized to the model input (640x640)
+        mask01 = (mask.astype(np.uint8) > 0).astype(np.uint8)
+        mask_vis = (mask01 * 255).astype(np.uint8)
 
-    img_bgr = cv2.imdecode(np.frombuffer(image_bytes, np.uint8), cv2.IMREAD_COLOR)
-    if img_bgr is None:
+        img_bgr = cv2.imdecode(np.frombuffer(image_bytes, np.uint8), cv2.IMREAD_COLOR)
+        if img_bgr is None:
+            # Fallback if image decoding fails after inference (unlikely but possible)
+            return PotholePredictionResponse(
+                is_pothole=True,
+                confidence=confidence,
+                message="Thanks, your response has been recorded. (Image display error)",
+                metrics=metrics,
+                mask_png_base64=None,
+                overlay_png_base64=None,
+            )
+
+        img_bgr = cv2.resize(img_bgr, (mask_vis.shape[1], mask_vis.shape[0]))
+        overlay = _make_overlay_bgr(img_bgr, mask01)
+
         return PotholePredictionResponse(
             is_pothole=True,
             confidence=confidence,
             message="Thanks, your response has been recorded.",
             metrics=metrics,
-            mask_png_base64=None,
-            overlay_png_base64=None,
+            mask_png_base64=_encode_png_base64(mask_vis),
+            overlay_png_base64=_encode_png_base64(overlay),
         )
 
-    img_bgr = cv2.resize(img_bgr, (mask_vis.shape[1], mask_vis.shape[0]))
-    overlay = _make_overlay_bgr(img_bgr, mask01)
-
-    return PotholePredictionResponse(
-        is_pothole=True,
-        confidence=confidence,
-        message="Thanks, your response has been recorded.",
-        metrics=metrics,
-        mask_png_base64=_encode_png_base64(mask_vis),
-        overlay_png_base64=_encode_png_base64(overlay),
-    )
+    except Exception as e:
+        print(f"Prediction error: {str(e)}")
+        # Construct a response indicating error, maintaining the response model
+        # In a real app, you might want to return HTTP 500, but keeping the response model allows the UI to show a friendly error
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
 

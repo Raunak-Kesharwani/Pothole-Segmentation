@@ -2,7 +2,10 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { predict } from '../api/client';
 import { usePredictions } from '../context/PredictionsContext';
+import { supabase } from '../lib/supabaseClient';
+import { useAuth } from '../context/SupabaseAuthContext';
 import { DetectionMap } from '../components/DetectionMap';
+import { AIMetrics } from '../components/AIMetrics';
 import type { PotholePredictionResponse } from '../types/api';
 
 function dataUrlFromBase64(b64: string) {
@@ -10,6 +13,7 @@ function dataUrlFromBase64(b64: string) {
 }
 
 export function PredictionPage() {
+  const { user } = useAuth();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -103,6 +107,38 @@ export function PredictionPage() {
       setLastLocation(location);
 
       const imageDataUrl = preview ?? '';
+
+      // Auto-save to Supabase if user is logged in
+      if (user) {
+        // Upload image first
+        const fileName = `${user.id}/${Date.now()}.jpg`
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('pothole-images')
+          .upload(fileName, file)
+
+        let publicUrl = ''
+        if (!uploadError && uploadData) {
+          const { data: urlData } = supabase.storage.from('pothole-images').getPublicUrl(uploadData.path)
+          publicUrl = urlData.publicUrl
+        }
+
+        // Calculate severity
+        const areaRatio = res.metrics?.area_ratio ?? 0
+        const severity = areaRatio > 0.05 ? 'critical' : areaRatio > 0.02 ? 'high' : areaRatio > 0.005 ? 'medium' : 'low'
+
+        // Save report
+        await supabase.from('reports').insert({
+          user_id: user.id,
+          image_url: publicUrl,
+          complaint_text: "Auto-generated report from AI Detection",
+          severity: severity,
+          status: 'pending',
+          latitude: location?.lat,
+          longitude: location?.lng,
+          ai_summary: res.message
+        })
+      }
+
       const overlayDataUrl = res.overlay_png_base64 ? dataUrlFromBase64(res.overlay_png_base64) : null;
       const maskDataUrl = res.mask_png_base64 ? dataUrlFromBase64(res.mask_png_base64) : null;
 
@@ -122,7 +158,7 @@ export function PredictionPage() {
     } finally {
       setLoading(false);
     }
-  }, [file, preview, addPrediction]);
+  }, [file, preview, addPrediction, user]);
 
   return (
     <motion.div
@@ -310,48 +346,12 @@ export function PredictionPage() {
               transition={{ delay: 0.3 }}
               className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-2xl p-5 shadow-glass border border-slate-200/50 dark:border-slate-700/50"
             >
-              <h3 className="font-medium text-slate-900 dark:text-white mb-3">Summary</h3>
-              <ul className="space-y-2 text-sm">
-                <li className="flex justify-between">
-                  <span className="text-slate-600 dark:text-slate-400">Pothole detected</span>
-                  <span className={result.is_pothole ? 'text-emerald-600 font-medium' : 'text-slate-500'}>
-                    {result.is_pothole ? 'Yes' : 'No'}
-                  </span>
-                </li>
-                <li className="flex justify-between">
-                  <span className="text-slate-600 dark:text-slate-400">Pothole count</span>
-                  <span className="text-slate-900 dark:text-white">{result.is_pothole ? 1 : 0}</span>
-                </li>
-                <li className="flex justify-between">
-                  <span className="text-slate-600 dark:text-slate-400">Confidence</span>
-                  <span className="text-slate-900 dark:text-white">{(result.confidence * 100).toFixed(1)}%</span>
-                </li>
-                {result.is_pothole && result.metrics?.area_ratio != null && (
-                  <li className="flex justify-between">
-                    <span className="text-slate-600 dark:text-slate-400">Severity</span>
-                    <span>
-                      {result.metrics.area_ratio >= 0.15
-                        ? 'High'
-                        : result.metrics.area_ratio >= 0.05
-                          ? 'Medium'
-                          : 'Low'}
-                    </span>
-                  </li>
-                )}
-                {result.metrics?.area_pixels != null && (
-                  <li className="flex justify-between">
-                    <span className="text-slate-600 dark:text-slate-400">Area (pixels)</span>
-                    <span className="text-slate-900 dark:text-white">{result.metrics.area_pixels}</span>
-                  </li>
-                )}
-                {result.metrics?.area_ratio != null && (
-                  <li className="flex justify-between">
-                    <span className="text-slate-600 dark:text-slate-400">Area ratio</span>
-                    <span className="text-slate-900 dark:text-white">{(result.metrics.area_ratio * 100).toFixed(2)}%</span>
-                  </li>
-                )}
-              </ul>
-              <p className="text-slate-600 dark:text-slate-400 text-sm mt-3">{result.message}</p>
+              <AIMetrics
+                confidence={result.confidence}
+                area_pixels={result.metrics?.area_pixels ?? undefined}
+                area_ratio={result.metrics?.area_ratio ?? undefined}
+              />
+              <p className="text-slate-600 dark:text-slate-400 text-sm mt-3 border-t border-slate-200 dark:border-slate-700 pt-3">{result.message}</p>
             </motion.div>
           </motion.section>
         )}

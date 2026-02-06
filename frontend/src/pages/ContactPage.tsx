@@ -1,6 +1,11 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Chatbot } from '../components/Chatbot';
+import { Chatbot } from '../components/ChatBot';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { Mail, Phone, MapPin, ArrowRight, CheckCircle2, Send } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export function ContactPage() {
   const [formData, setFormData] = useState({
@@ -11,184 +16,200 @@ export function ContactPage() {
   });
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // In production: send to API
-    console.log('Form submitted:', formData);
-    setSubmitted(true);
-    setTimeout(() => {
-      setSubmitted(false);
-      setFormData({ name: '', email: '', subject: '', message: '' });
-    }, 3000);
+
+    // Web3Forms Submission
+    try {
+      const response = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          access_key: "ff2da9e5-0c0b-49b6-9295-765d8d37efa4", // Remplacer par votre clé d'accès Web3Forms
+          ...formData,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        console.log("Web3Forms Success:", result);
+        setSubmitted(true);
+        setFormData({ name: '', email: '', subject: '', message: '' });
+        setTimeout(() => setSubmitted(false), 5000);
+      } else {
+        console.error("Web3Forms Error:", result);
+        alert("Something went wrong. Please try again.");
+      }
+    } catch (error) {
+      console.error("Submission error:", error);
+      alert("Failed to submit form.");
+    }
   };
 
   return (
-    <>
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="space-y-8"
-      >
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">Contact Us</h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-1">
-            Have questions? Reach out to us or chat with our AI assistant.
-          </p>
-        </div>
+    <div className="max-w-6xl mx-auto space-y-8">
+      <div className="text-center max-w-2xl mx-auto mb-12">
+        <h1 className="text-4xl font-bold text-slate-900 dark:text-white tracking-tight mb-4">Get in Touch</h1>
+        <p className="text-lg text-slate-600 dark:text-slate-400">
+          Have questions about our detection system? Need support? We're here to help.
+        </p>
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Contact Info */}
-          <motion.section
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
-            className="space-y-6"
-          >
-            <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-2xl p-6 shadow-glass border border-slate-200/50 dark:border-slate-700/50">
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Get in Touch</h2>
-              <div className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <span className="text-2xl">📧</span>
-                  <div>
-                    <p className="font-medium text-slate-900 dark:text-white">Email</p>
-                    <p className="text-slate-600 dark:text-slate-400 text-sm">support@potholeai.com</p>
-                  </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* LEFT COLUMN: INFO */}
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Contact Information</CardTitle>
+              <CardDescription>Reach out to us directly through any of these channels.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-start gap-4">
+                <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400">
+                  <Mail className="w-5 h-5" />
                 </div>
-                <div className="flex items-start gap-3">
-                  <span className="text-2xl">📞</span>
-                  <div>
-                    <p className="font-medium text-slate-900 dark:text-white">Phone</p>
-                    <p className="text-slate-600 dark:text-slate-400 text-sm">+1 (555) 123-4567</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <span className="text-2xl">📍</span>
-                  <div>
-                    <p className="font-medium text-slate-900 dark:text-white">Address</p>
-                    <p className="text-slate-600 dark:text-slate-400 text-sm">
-                      123 Innovation Street<br />
-                      Tech City, TC 12345
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <span className="text-2xl">🕒</span>
-                  <div>
-                    <p className="font-medium text-slate-900 dark:text-white">Business Hours</p>
-                    <p className="text-slate-600 dark:text-slate-400 text-sm">
-                      Monday - Friday: 9:00 AM - 6:00 PM<br />
-                      Saturday: 10:00 AM - 4:00 PM
-                    </p>
-                  </div>
+                <div>
+                  <p className="font-semibold text-slate-900 dark:text-white">Email Us</p>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm">support@potholeai.com</p>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm">partners@potholeai.com</p>
                 </div>
               </div>
-            </div>
 
-            <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-2xl p-6 shadow-glass border border-slate-200/50 dark:border-slate-700/50">
-              <h3 className="font-semibold text-slate-900 dark:text-white mb-2">Quick Links</h3>
-              <ul className="space-y-2 text-sm">
-                <li>
-                  <a href="/prediction" className="text-emerald-600 dark:text-emerald-400 hover:underline">
-                    Try Prediction →
-                  </a>
-                </li>
-                <li>
-                  <a href="/report" className="text-emerald-600 dark:text-emerald-400 hover:underline">
-                    Generate Report →
-                  </a>
-                </li>
-                <li>
-                  <a href="/leaderboard" className="text-emerald-600 dark:text-emerald-400 hover:underline">
-                    View Leaderboard →
-                  </a>
-                </li>
+              <div className="flex items-start gap-4">
+                <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400">
+                  <Phone className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-semibold text-slate-900 dark:text-white">Call Us</p>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm">+91 98765 43210</p>
+                  <p className="text-xs text-slate-400 mt-1">Mon-Fri, 9am-6pm IST</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <div className="p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400">
+                  <MapPin className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-semibold text-slate-900 dark:text-white">Visit Us</p>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm">
+                    4th Floor, Tech Park,<br />
+                    Outer Ring Road, Bangalore - 560103
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-slate-900 to-slate-800 text-white border-none">
+            <CardContent className="p-8">
+              <h3 className="text-xl font-bold mb-4">Quick Links</h3>
+              <ul className="space-y-3">
+                {[
+                  { to: '/prediction', label: 'Start Prediction' },
+                  { to: '/report', label: 'Submit Report' },
+                  { to: '/leaderboard', label: 'View Leaderboard' }
+                ].map((link, i) => (
+                  <li key={i}>
+                    <Link to={link.to} className="flex items-center gap-2 hover:text-emerald-400 transition-colors group">
+                      <span className="p-1 rounded bg-white/10 group-hover:bg-emerald-500/20 transition-colors">
+                        <ArrowRight size={14} />
+                      </span>
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
               </ul>
-            </div>
-          </motion.section>
+            </CardContent>
+          </Card>
+        </div>
 
-          {/* Contact Form */}
-          <motion.section
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-2xl p-6 shadow-glass border border-slate-200/50 dark:border-slate-700/50"
-          >
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Send us a Message</h2>
+        {/* RIGHT COLUMN: FORM */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Send us a Message</CardTitle>
+            <CardDescription>Fill out the form below and we'll reply within 24 hours.</CardDescription>
+          </CardHeader>
+          <CardContent>
             {submitted ? (
               <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
+                initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400"
+                className="flex flex-col items-center justify-center py-12 text-center"
               >
-                ✓ Thank you! Your message has been sent. We'll get back to you soon.
+                <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 rounded-full flex items-center justify-center mb-4">
+                  <CheckCircle2 size={32} />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Message Sent!</h3>
+                <p className="text-slate-500 dark:text-slate-400">Thank you for contacting us. We will get back to you shortly.</p>
+                <Button
+                  variant="outline"
+                  className="mt-6"
+                  onClick={() => setSubmitted(false)}
+                >
+                  Send Another
+                </Button>
               </motion.div>
             ) : (
+
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Name</label>
+                    <Input
+                      placeholder="e.g. Amit Kumar"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      required
+                      className="bg-white dark:bg-slate-950"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Email</label>
+                    <Input
+                      type="email"
+                      placeholder="amit.kumar@example.com"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      required
+                      className="bg-white dark:bg-slate-950"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Email *
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Subject *
-                  </label>
-                  <input
-                    type="text"
-                    required
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Subject</label>
+                  <Input
+                    placeholder="e.g. Reporting a pothole in Indiranagar"
                     value={formData.subject}
                     onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                    className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    required
+                    className="bg-white dark:bg-slate-950"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Message *
-                  </label>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Message</label>
                   <textarea
-                    required
-                    rows={5}
+                    className="flex min-h-[120px] w-full rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50 resize-none font-sans"
+                    placeholder="Describe your inquiry or issue regarding road maintenance..."
                     value={formData.message}
                     onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                    className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
+                    required
                   />
                 </div>
-                <motion.button
-                  type="submit"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold shadow-lg transition-colors"
-                >
-                  Send Message
-                </motion.button>
-              </form>
+                <Button type="submit" size="lg" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-lg shadow-emerald-900/20">
+                  <Send className="mr-2 w-4 h-4" /> Send Message
+                </Button>
+              </form >
             )}
-          </motion.section>
-        </div>
-      </motion.div>
+          </CardContent>
+        </Card >
+      </div >
 
-      {/* Chatbot */}
       <Chatbot />
-    </>
+    </div >
   );
 }

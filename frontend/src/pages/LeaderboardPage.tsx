@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { Trophy, Medal, Award, Flame, User, TrendingUp, MapPin, CheckCircle2 } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/Card';
+
 
 type Period = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
@@ -10,131 +13,149 @@ const PERIODS: { value: Period; label: string }[] = [
   { value: 'yearly', label: 'Yearly' },
 ];
 
-// Mock leaderboard data
+// Mock leaderboard data with Indian context
 const MOCK_LEADERS = [
-  { rank: 1, name: 'Alex Roadwatch', reportsSubmitted: 42, resolved: 38, impactScore: 92, badge: '🏆 Top Reporter' },
-  { rank: 2, name: 'Sam Streetwise', reportsSubmitted: 38, resolved: 35, impactScore: 88, badge: '⭐ Star Contributor' },
-  { rank: 3, name: 'Jordan Pavement', reportsSubmitted: 31, resolved: 28, impactScore: 85, badge: '🔥 On Fire' },
-  { rank: 4, name: 'Casey Crosswalk', reportsSubmitted: 28, resolved: 24, impactScore: 82, badge: '📌 Active' },
-  { rank: 5, name: 'Demo User', reportsSubmitted: 12, resolved: 10, impactScore: 75, badge: '✨ Newcomer' },
+  { rank: 1, name: 'Rajesh Kumar', reportsSubmitted: 89, resolved: 82, impactScore: 98, badge: 'Top Reporter', icon: Trophy },
+  { rank: 2, name: 'Priya Sharma', reportsSubmitted: 76, resolved: 70, impactScore: 94, badge: 'Star Contributor', icon: Medal },
+  { rank: 3, name: 'Amit Patel', reportsSubmitted: 65, resolved: 58, impactScore: 88, badge: 'On Fire', icon: Flame },
+  { rank: 4, name: 'Sneha Gupta', reportsSubmitted: 52, resolved: 48, impactScore: 85, badge: 'Active', icon: User },
+  { rank: 5, name: 'Vikram Singh', reportsSubmitted: 45, resolved: 40, impactScore: 82, badge: 'Newcomer', icon: Award },
 ];
 
 export function LeaderboardPage() {
   const [period, setPeriod] = useState<Period>('monthly');
 
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const item = {
+    hidden: { y: 20, opacity: 0 },
+    show: { y: 0, opacity: 1 }
+  };
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="space-y-8"
-    >
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">Leaderboard</h1>
-        <p className="text-slate-600 dark:text-slate-400 mt-1">
-          Top contributors by reports submitted, resolved, and impact score.
-        </p>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        {PERIODS.map((p) => (
-          <button
-            key={p.value}
-            type="button"
-            onClick={() => setPeriod(p.value)}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-              period === p.value
-                ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-            }`}
-          >
-            {p.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="bg-white dark:bg-slate-800/50 rounded-2xl shadow-card border border-slate-100 dark:border-slate-700 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800/80">
-                <th className="px-6 py-4 text-sm font-semibold text-slate-700 dark:text-slate-300">Rank</th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-700 dark:text-slate-300">User</th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-700 dark:text-slate-300">Reports</th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-700 dark:text-slate-300">Resolved</th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-700 dark:text-slate-300">Impact</th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-700 dark:text-slate-300">Badge</th>
-              </tr>
-            </thead>
-            <tbody>
-              {MOCK_LEADERS.map((row, i) => (
-                <motion.tr
-                  key={row.name}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                >
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex w-8 h-8 items-center justify-center rounded-full text-sm font-bold ${
-                      row.rank === 1 ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' :
-                      row.rank === 2 ? 'bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-300' :
-                      row.rank === 3 ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-500' :
-                      'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
-                    }`}>
-                      {row.rank}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 font-medium text-slate-900 dark:text-white">{row.name}</td>
-                  <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{row.reportsSubmitted}</td>
-                  <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{row.resolved}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-24 h-2 rounded-full bg-slate-200 dark:bg-slate-600 overflow-hidden">
-                        <motion.div
-                          className="h-full bg-emerald-500 rounded-full"
-                          initial={{ width: 0 }}
-                          animate={{ width: `${row.impactScore}%` }}
-                          transition={{ duration: 0.6, delay: i * 0.05 }}
-                        />
-                      </div>
-                      <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{row.impactScore}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">{row.badge}</td>
-                </motion.tr>
-              ))}
-            </tbody>
-          </table>
+    <div className="space-y-8 max-w-6xl mx-auto">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Leaderboard</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-2">
+            Top contributors making our Indian cities safer and smoother.
+          </p>
+        </div>
+        <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+          {PERIODS.map((p) => (
+            <button
+              key={p.value}
+              onClick={() => setPeriod(p.value)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${period === p.value
+                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+            >
+              {p.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      <motion.section
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="bg-white dark:bg-slate-800/50 rounded-2xl p-6 shadow-card border border-slate-100 dark:border-slate-700"
+      <motion.div
+        variants={container}
+        initial="hidden"
+        animate="show"
+        className="grid grid-cols-1 md:grid-cols-4 gap-6"
       >
-        <h2 className="text-lg font-medium text-slate-900 dark:text-white mb-4">Monthly summary</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800">
-            <p className="text-2xl font-bold text-slate-900 dark:text-white">1.2k</p>
-            <p className="text-sm text-slate-600 dark:text-slate-400">Reports this month</p>
+        {[
+          { label: 'Reports this month', value: '1.2k', icon: TrendingUp, color: 'text-blue-500' },
+          { label: 'Resolution Rate', value: '89%', icon: CheckCircle2, color: 'text-emerald-500' },
+          { label: 'Active Reporters', value: '340', icon: User, color: 'text-amber-500' },
+          { label: 'Cities Covered', value: '12', icon: MapPin, color: 'text-purple-500' }
+        ].map((stat, i) => (
+          <motion.div variants={item} key={i}>
+            <Card className="hover:shadow-md transition-shadow">
+              <CardContent className="p-6 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{stat.label}</p>
+                  <p className="text-3xl font-bold text-slate-900 dark:text-white mt-2">{stat.value}</p>
+                </div>
+                <stat.icon className={`w-8 h-8 ${stat.color} opacity-80`} />
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
+      </motion.div>
+
+      <Card className="overflow-hidden border-0 shadow-lg ring-1 ring-slate-200 dark:ring-slate-800">
+        <CardHeader className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
+          <CardTitle>Top Contributors</CardTitle>
+          <CardDescription>Ranked by impact score and resolved reports across India</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+                  <th className="px-6 py-4 text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 tracking-wider">Rank</th>
+                  <th className="px-6 py-4 text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 tracking-wider">User</th>
+                  <th className="px-6 py-4 text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 tracking-wider">Reports</th>
+                  <th className="px-6 py-4 text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 tracking-wider">Resolved</th>
+                  <th className="px-6 py-4 text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 tracking-wider">Impact Score</th>
+                  <th className="px-6 py-4 text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 tracking-wider">Badge</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {MOCK_LEADERS.map((row, i) => (
+                  <motion.tr
+                    key={row.name}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.2 + (i * 0.1) }}
+                    className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
+                  >
+                    <td className="px-6 py-4">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-sm transition-transform group-hover:scale-110 ${row.rank === 1 ? 'bg-yellow-100 text-yellow-700 ring-2 ring-yellow-200' :
+                        row.rank === 2 ? 'bg-slate-200 text-slate-700' :
+                          row.rank === 3 ? 'bg-orange-100 text-orange-700' :
+                            'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                        }`}>
+                        {row.rank}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 font-medium text-slate-900 dark:text-white">{row.name}</td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{row.reportsSubmitted}</td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{row.resolved}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-24 h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${row.impactScore}%` }}
+                            transition={{ duration: 1, delay: 0.5 + (i * 0.1) }}
+                            className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full"
+                          />
+                        </div>
+                        <span className="font-semibold text-slate-700 dark:text-slate-300">{row.impactScore}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-sm">
+                        <row.icon size={12} className="text-emerald-500" />
+                        {row.badge}
+                      </span>
+                    </td>
+                  </motion.tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800">
-            <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">89%</p>
-            <p className="text-sm text-slate-600 dark:text-slate-400">Resolved</p>
-          </div>
-          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800">
-            <p className="text-2xl font-bold text-slate-900 dark:text-white">340</p>
-            <p className="text-sm text-slate-600 dark:text-slate-400">Active reporters</p>
-          </div>
-          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800">
-            <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">12</p>
-            <p className="text-sm text-slate-600 dark:text-slate-400">Cities</p>
-          </div>
-        </div>
-      </motion.section>
-    </motion.div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

@@ -1,3 +1,16 @@
 data bundle/
 .venv/
 __pycache__/
+*.pyc
+.env
+.env.*
+node_modules/
+frontend/dist/
+frontend/node_modules/
+frontend/.env.local
+backend/.env
+/.vscode/
+logs/
+*.log
+coverage/
+.DS_Store
